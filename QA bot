@@ -1,0 +1,33 @@
+from transformers import BertTokenizer, BertForQuestionAnswering
+import torch
+
+# Load pretrained tokenizer and model
+model_name = "bert-large-uncased-whole-word-masking-finetuned-squad"
+tokenizer = BertTokenizer.from_pretrained(model_name)
+model = BertForQuestionAnswering.from_pretrained(model_name)
+
+
+sunset_context = "the company found in 2005 and located in America having 2000 employess in the city and north indians for the staff and labour .the overall profit per day was 2 crores."
+print(sunset_context)
+def qa(question):
+    context=sunset_context
+    input_ids = tokenizer.encode(question,context)
+    tokens = tokenizer.convert_ids_to_tokens(input_ids)
+    sep_ids = input_ids.index(tokenizer.sep_token_id)
+    num_a=sep_ids+1
+    num_b = len(input_ids)-num_a
+    seg_id = [0]*num_a+[1]*num_b
+    output = model(torch.tensor([input_ids]),token_type_ids=torch.tensor([seg_id]))
+    ans_start = torch.argmax(output.start_logits)
+    ans_end = torch.argmax(output.end_logits)
+    if ans_end>=ans_start:
+        ans = ' '.join(tokens[ans_start:ans_end+1])
+    else:
+        print("it do know")
+    corrected_ans = ''
+    for word in ans.split():
+        if word[0:2]=='##':
+            corrected_ans += word[0:2]
+        else:
+            corrected_ans += ' ' + word
+    return corrected_ans
